@@ -908,36 +908,41 @@ L.control.zoom({ position: 'topleft' }).addTo(map);
 const worldBounds = L.latLngBounds(L.latLng(-85, -180), L.latLng(85, 180));
 map.setMaxBounds(worldBounds);
 
-const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-  subdomains: 'abcd',
-  maxZoom: 19,
-  noWrap: true,
-  bounds: worldBounds
-});
-
-const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+// Single POI-rich OpenStreetMap layer used for BOTH themes (this is the tile
+// source that actually renders landmarks like temples, monuments, etc. at
+// street zoom). Dark mode is achieved with a CSS filter on the tile pane
+// rather than swapping to a different, POI-sparse "dark" tile provider -
+// that keeps landmark labels (e.g. the Shirdi Sai Baba Temple) visible in
+// both themes instead of only in light mode.
+const osmTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors',
   subdomains: 'abc',
   maxZoom: 19,
   noWrap: true,
   bounds: worldBounds
 });
+osmTiles.addTo(map);
 
 let isDark = true;
-darkTiles.addTo(map);
+applyTileTheme();
+
+function applyTileTheme() {
+  const pane = map.getPane('tilePane');
+  if (isDark) {
+    pane.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9)';
+  } else {
+    pane.style.filter = 'none';
+  }
+}
 
 function toggleTheme() {
   isDark = !isDark;
+  applyTileTheme();
   if (isDark) {
-    map.removeLayer(lightTiles);
-    darkTiles.addTo(map);
     document.documentElement.classList.remove('light');
     document.getElementById('theme-label').textContent = 'Dark';
     document.getElementById('theme-toggle').firstChild.textContent = '🌙 ';
   } else {
-    map.removeLayer(darkTiles);
-    lightTiles.addTo(map);
     document.documentElement.classList.add('light');
     document.getElementById('theme-label').textContent = 'Light';
     document.getElementById('theme-toggle').firstChild.textContent = '☀️ ';
